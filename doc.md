@@ -6,3 +6,11 @@
   - morgan: in ra các log khi người dùng gửi request
   - helmet: Nó là cái mũ bảo hiểm để ngăn chặn lộ thông tin. Ngăn bên thứ 3 truy cập vào. Ví dụ: khi hacker tấn công vào nó sẽ nhìn header của chúng ta coi chúng ta đang xài công nghệ để mà tấn công
   - compression: Giảm thiểu băng thông cho chúng ta
+- Nguyên tắc không được nhúng con số nào vô code hết
+- Không cần đóng kết nối server liên tục.
+
+## PoolSize
+
+- PoolSize: cải thiện hiệu suất, khả năng mở rộng.
+- Nếu vượt quá kết nối PoolSize: thì mongoose sẽ cho kết nối phải xếp hàng đợi thằng phía trước xử lí xong rồi mới tới lượt mình.
+- PoolSize này dựa trên tài nguyên sẵn có trên máy tính (CPU, RAM, ...). Vì vậy, khi mở rộng chúng ta phải để ý tới tài nguyên của mình và test connect PoolSize

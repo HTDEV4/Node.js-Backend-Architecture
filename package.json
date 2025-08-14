@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/HTDEV4/Node.js-Backend-Architecture#readme",
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "mongoose": "^8.17.0"
   },
   "devDependencies": {
     "compression": "^1.8.1",
