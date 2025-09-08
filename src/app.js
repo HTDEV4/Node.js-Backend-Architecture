@@ -3,30 +3,52 @@ const compression = require("compression");
 const express = require("express");
 const { default: helmet } = require("helmet");
 const morgan = require("morgan");
+const { rateLimit } = require("express-rate-limit");
+
 const app = express();
 
-// * init middlewares
+// * ====> init middlewares
 app.use(morgan("dev"));
-// morgan("combined"); // Mode này giành cho product nó sẽ hiển thị ping người dùng - ngày tháng - phương thức (GET, ...) - .... - curl (trình duyệt đang chạy: GG, FireFox, ...)
-// morgan("common"); // y như combined nma nó kh có curl
-// morgan("short"); // cũng y như combined nhưng mà nó ngắn hơn nhiều
-// morgan("tiny"); // Ngắn hơn short luôn
-app.use(helmet()); // Đội mũ bảo hiểm cho HEADER, giúp tăng bảo mật
-app.use(compression()); // Tốt cho hiệu năng, giúp giảm kích thước response trả về cho client.
-app.use(express.json()); // Giúp Express hiểu được body của request nếu nó ở định dạng JSON.
-app.use(express.urlencoded({ extended: true })); // Giúp Express hiểu được body của request từ các form HTML.
+app.use(helmet()); // Tăng cường bảo mật cho các header của HTTP response.
+app.use(compression()); // Giảm kích thước response, tăng tốc độ tải.
 
-// * init db
+// Body parser middlewares - cần đặt trước routes
+app.use(express.json({ limit: "10kb" })); // Giới hạn payload JSON là 10kb
+app.use(express.urlencoded({ extended: true }));
+
+// Security middlewares
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+app.use(limiter);
+
+// * ====> init db
 require("./dbs/init.mongodb");
 const { checkOverload } = require("./helpers/check.connect");
 checkOverload();
-// * init routes
-app.get("/", (req, res, next) => {
-  return res.status(200).json({
-    message: "Hello World!",
-  });
+
+// * ====> init routes
+app.use("/", require("./routes"));
+
+// * ====> handling error
+// Middleware bắt lỗi 404
+app.use((req, res, next) => {
+  const error = new Error("Not Found");
+  error.status = 404;
+  next(error);
 });
 
-// * handling error
+// Middleware xử lý lỗi tổng
+app.use((error, req, res, next) => {
+  const statusCode = error.status || 500;
+  return res.status(statusCode).json({
+    status: "error",
+    code: statusCode,
+    message: error.message || "Internal Server Error",
+  });
+});
 
 module.exports = app;
