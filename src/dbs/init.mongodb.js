@@ -5,7 +5,7 @@ const {
   db: { host, name, port },
 } = require("../configs/config.mongodb");
 const connectString = `mongodb://${host}:${port}/${name}`;
-console.log(connectString);
+// console.log(connectString);
 const { countConnect } = require("../helpers/check.connect");
 class Database {
   constructor() {
