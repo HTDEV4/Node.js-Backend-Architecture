@@ -7,7 +7,7 @@ const { rateLimit } = require("express-rate-limit");
 
 const app = express();
 
-// * ====> init middlewares
+// * ====> Init middlewares
 app.use(morgan("dev"));
 app.use(helmet()); // Tăng cường bảo mật cho các header của HTTP response.
 app.use(compression()); // Giảm kích thước response, tăng tốc độ tải.
@@ -16,7 +16,7 @@ app.use(compression()); // Giảm kích thước response, tăng tốc độ t�
 app.use(express.json({ limit: "10kb" })); // Giới hạn payload JSON là 10kb
 app.use(express.urlencoded({ extended: true }));
 
-// Security middlewares
+// * ====> Security middlewares
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 100,
@@ -25,15 +25,15 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// * ====> init db
+// * ====> Init db
 require("./dbs/init.mongodb");
 const { checkOverload } = require("./helpers/check.connect");
 checkOverload();
 
-// * ====> init routes
+// * ====> Init routes
 app.use("/", require("./routes"));
 
-// * ====> handling error
+// * ====> Handling error
 // Middleware bắt lỗi 404
 app.use((req, res, next) => {
   const error = new Error("Not Found");
@@ -43,6 +43,7 @@ app.use((req, res, next) => {
 
 // Middleware xử lý lỗi tổng
 app.use((error, req, res, next) => {
+  // 500 là lỗi của server
   const statusCode = error.status || 500;
   return res.status(statusCode).json({
     status: "error",

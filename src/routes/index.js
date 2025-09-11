@@ -10,6 +10,7 @@ router.use(apiKey);
 // * ====> Check permission
 router.use(permission("0000"));
 
+// * ====> Route Tổng
 router.use("/v1/api/", require("./access"));
 
 module.exports = router;
