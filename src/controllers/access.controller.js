@@ -11,7 +11,10 @@ class AccessController {
        * 201 CREATED
        */
       return res.status(201).json(await AccessService.signUp(req.body));
-    } catch (error) {}
+    } catch (error) {
+      // Chuyển lỗi cho middleware xử lý lỗi tổng (app.js)
+      next(error);
+    }
   };
 }
 
