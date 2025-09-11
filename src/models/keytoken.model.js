@@ -13,6 +13,10 @@ var keyTokenSchema = new Schema(
       required: true,
       ref: "Shop", // tham chiếu tới shop model
     },
+    privateKey: {
+      type: String,
+      require: true,
+    },
     publicKey: {
       type: String,
       require: true,
