@@ -1,9 +1,19 @@
 "use strict";
 
-const { CREATED } = require("../core/success.response");
+const { CREATED, SuccessResponse } = require("../core/success.response");
 const AccessService = require("../services/access.service");
 
 class AccessController {
+  login = async (req, res, next) => {
+    try {
+      new SuccessResponse({
+        metadata: await AccessService.login(req.body),
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   signUp = async (req, res, next) => {
     try {
       // * 1. Gọi service để xử lý nghiệp vụ

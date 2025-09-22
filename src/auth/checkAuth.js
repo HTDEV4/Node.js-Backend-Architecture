@@ -16,7 +16,6 @@ const apiKey = async (req, res, next) => {
         message: "Forbidden Error",
       });
     }
-
     // * ====> Check objectKey
     const objKey = await findById(key);
     if (!objKey) {
@@ -24,7 +23,6 @@ const apiKey = async (req, res, next) => {
         message: "Forbidden Error",
       });
     }
-
     req.objKey = objKey;
     return next();
   } catch (error) {

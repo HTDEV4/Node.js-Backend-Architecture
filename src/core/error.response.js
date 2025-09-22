@@ -1,24 +1,7 @@
 "use strict";
 
-// Gộp các hằng số lại để dễ quản lý và tránh nhầm lẫn
-const HttpStatusCode = {
-  OK: 200,
-  CREATED: 201,
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  CONFLICT: 409,
-};
-
-// Các Reason Phrase chuẩn của HTTP
-const ReasonPhrases = {
-  BAD_REQUEST: "Bad Request",
-  UNAUTHORIZED: "Unauthorized",
-  FORBIDDEN: "Forbidden",
-  NOT_FOUND: "Not Found",
-  CONFLICT: "Conflict",
-};
+// Import trực tiếp từ file barrel httpStatusCode.js
+const { StatusCodes, ReasonPhrases } = require("../utils/httpStatusCode");
 
 // Class cha cho các lỗi nghiệp vụ
 class ErrorResponse extends Error {
@@ -33,7 +16,7 @@ class ErrorResponse extends Error {
 class ConflictRequestError extends ErrorResponse {
   constructor(
     message = ReasonPhrases.CONFLICT,
-    statusCode = HttpStatusCode.CONFLICT
+    statusCode = StatusCodes.CONFLICT
   ) {
     super(message, statusCode);
   }
@@ -42,7 +25,7 @@ class ConflictRequestError extends ErrorResponse {
 class BadRequestError extends ErrorResponse {
   constructor(
     message = ReasonPhrases.BAD_REQUEST,
-    statusCode = HttpStatusCode.BAD_REQUEST
+    statusCode = StatusCodes.BAD_REQUEST
   ) {
     super(message, statusCode);
   }
@@ -51,7 +34,7 @@ class BadRequestError extends ErrorResponse {
 class ForbiddenError extends ErrorResponse {
   constructor(
     message = ReasonPhrases.FORBIDDEN,
-    statusCode = HttpStatusCode.FORBIDDEN
+    statusCode = StatusCodes.FORBIDDEN
   ) {
     super(message, statusCode);
   }
@@ -60,18 +43,26 @@ class ForbiddenError extends ErrorResponse {
 class NotFoundError extends ErrorResponse {
   constructor(
     message = ReasonPhrases.NOT_FOUND,
-    statusCode = HttpStatusCode.NOT_FOUND
+    statusCode = StatusCodes.NOT_FOUND
   ) {
     super(message, statusCode);
   }
 }
 
-// ... bạn có thể thêm các class lỗi khác như UnauthorizedError ...
+class UnauthorizedError extends ErrorResponse {
+  constructor(
+    message = ReasonPhrases.UNAUTHORIZED,
+    statusCode = StatusCodes.UNAUTHORIZED
+  ) {
+    super(message, statusCode);
+  }
+}
 
 module.exports = {
-  ErrorResponse, // <-- Export class cha để dùng cho `instanceof`
+  ErrorResponse,
   ConflictRequestError,
   BadRequestError,
   ForbiddenError,
   NotFoundError,
+  UnauthorizedError,
 };
