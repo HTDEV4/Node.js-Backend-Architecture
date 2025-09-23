@@ -24,6 +24,13 @@ const RoleShop = {
 };
 
 class AccessService {
+  static logout = async (keyStore) => {
+    // Thực hiện hành động xóa key token khỏi database
+    await KeyTokenService.removeKeyById(keyStore._id);
+
+    return {};
+  };
+
   /*
     refeshToken: dùng để người dùng không cần đăng nhập lại tại nó đã được lưu trên cookie và phải nói với FE là nó vẫn được lưu trên cookie không cần truy cập db
     1. Check email in dbs
