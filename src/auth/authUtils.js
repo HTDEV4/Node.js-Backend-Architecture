@@ -89,7 +89,13 @@ const authentication = asyncHandler(async (req, res, next) => {
     throw error;
   }
 });
+
+const verifyJWT = async (token, keySecret) => {
+  return await JWT.verify(token, keySecret);
+};
+
 module.exports = {
   createTokenPair,
   authentication,
+  verifyJWT,
 };

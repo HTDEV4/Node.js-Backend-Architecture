@@ -4,12 +4,13 @@ const shopModel = require("../models/shop.model");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const KeyTokenService = require("./keyToken.service");
-const { createTokenPair } = require("../auth/authUtils");
+const { createTokenPair, verifyJWT } = require("../auth/authUtils");
 const { getInfoData } = require("../utils");
 const {
   BadRequestError,
   ConflictRequestError,
   UnauthorizedError,
+  ForbiddenError,
 } = require("../core/error.response");
 
 // * ====> Service
@@ -24,6 +25,65 @@ const RoleShop = {
 };
 
 class AccessService {
+  /**
+   *  check this token used
+   * */
+  static handlerRefreshToken = async (refreshToken) => {
+    // * Đầu tiên phải check coi th RefreshToken đc sử dụng chưa
+    const foundToken = await KeyTokenService.findByRefreshTokenUsed(
+      refreshToken
+    );
+    if (foundToken) {
+      // decode xem mày là th nào có trong hệ thống của tao không
+      const { userId, email } = await verifyJWT(
+        refreshToken,
+        foundToken.privateKey
+      );
+      // xóa tất cả token trong keyStore
+      await KeyTokenService.deleteKeyById(userId);
+      throw new ForbiddenError(" Something wrong happened !! Pls reLogin ");
+    }
+
+    // RefreshToken đang được sử dụng mà nó chưa được sử dụng lại => quá ngon
+    const holderToken = await KeyTokenService.findByRefreshToken(refreshToken);
+    if (!holderToken) throw new UnauthorizedError("Shop not registered 1");
+
+    // verifyToken
+    const { userId, email } = await verifyJWT(
+      refreshToken,
+      holderToken.privateKey
+    );
+
+    // check UserId
+    const foundShop = await findByEmail({ email });
+    if (!foundShop) throw new UnauthorizedError("Shop not registered 2");
+
+    // create 1 cặp mới
+    const tokens = await createTokenPair(
+      {
+        userId,
+        email,
+      },
+      holderToken.publicKey,
+      holderToken.privateKey
+    );
+
+    // * update token
+    await holderToken.updateOne({
+      $set: {
+        refreshToken: tokens.refreshToken,
+      },
+      $addToSet: {
+        refreshTokenUsed: refreshToken, // đã được sử dụng để lấy token mới rồi
+      },
+    });
+
+    return {
+      user: { userId, email },
+      tokens,
+    };
+  };
+
   static logout = async (keyStore) => {
     // Thực hiện hành động xóa key token khỏi database
     await KeyTokenService.removeKeyById(keyStore._id);
