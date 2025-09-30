@@ -29,7 +29,9 @@ class AccessService {
    *  check this token used
    * */
   static handlerRefreshToken = async (refreshToken) => {
-    // * Đầu tiên phải check coi th RefreshToken đc sử dụng chưa
+    //* === Bước 1: Kiểm tra xem token này đã từng được sử dụng chưa ===
+    //  Nếu một RT đã được sử dụng, có nghĩa là kẻ tấn công có thể đã lấy cắp nó.
+    //  Đây là một cơ chế phát hiện rò rỉ token (Reuse Detection).
     const foundToken = await KeyTokenService.findByRefreshTokenUsed(
       refreshToken
     );
@@ -41,24 +43,29 @@ class AccessService {
       );
       // xóa tất cả token trong keyStore
       await KeyTokenService.deleteKeyById(userId);
-      throw new ForbiddenError(" Something wrong happened !! Pls reLogin ");
+      throw new ForbiddenError(
+        " A reused refresh token was detected! Please log in again. "
+      );
     }
 
-    // RefreshToken đang được sử dụng mà nó chưa được sử dụng lại => quá ngon
+    // * === Bước 2: Kiểm tra xem refresh token có hợp lệ không ===
+    //   Tìm keyStore đang chứa refresh token này.
     const holderToken = await KeyTokenService.findByRefreshToken(refreshToken);
-    if (!holderToken) throw new UnauthorizedError("Shop not registered 1");
+    if (!holderToken) throw new UnauthorizedError("Invalid Refresh Token");
 
-    // verifyToken
+    // * === Bước 3: Xác thực token và thông tin người dùng ===
+    //   Dùng privateKey được lưu trong DB để xác thực refreshToken.
     const { userId, email } = await verifyJWT(
       refreshToken,
       holderToken.privateKey
     );
 
-    // check UserId
+    // check UserId xem user có thật sự tồn tại trong DB không.
     const foundShop = await findByEmail({ email });
-    if (!foundShop) throw new UnauthorizedError("Shop not registered 2");
+    if (!foundShop) throw new UnauthorizedError("User not registered");
 
-    // create 1 cặp mới
+    // * === Bước 4: Tạo cặp token mới (Refresh Token Rotation) ===
+    //   Tạo một accessToken và một refreshToken hoàn toàn mới.
     const tokens = await createTokenPair(
       {
         userId,
@@ -68,7 +75,8 @@ class AccessService {
       holderToken.privateKey
     );
 
-    // * update token
+    // * === Bước 5: Cập nhật keyStore ===
+    //   Cập nhật keyStore với refreshToken mới, và thêm refreshToken cũ vào danh sách đã sử dụng.
     await holderToken.updateOne({
       $set: {
         refreshToken: tokens.refreshToken,
@@ -78,6 +86,7 @@ class AccessService {
       },
     });
 
+    // * === Bước 6: Trả về cặp token mới cho người dùng ===
     return {
       user: { userId, email },
       tokens,
