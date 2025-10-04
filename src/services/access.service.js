@@ -25,6 +25,48 @@ const RoleShop = {
 };
 
 class AccessService {
+  static handlerRefreshTokenV2 = async ({ keyStore, user, refreshToken }) => {
+    const { userId, email } = user;
+
+    // 1. Kiểm tra xem RT này có nằm trong danh sách đã sử dụng chưa.
+    if (keyStore.refreshTokenUsed.includes(refreshToken)) {
+      // Nếu có -> Phát hiện tấn công -> Xóa hết key và bắt đăng nhập lại.
+      await KeyTokenService.deleteKeyById(userId);
+      throw new ForbiddenError("Something wrong happened!! Pls relogin");
+    }
+
+    // 2. Kiểm tra xem RT gửi lên có phải là RT đang hoạt động không.
+    if (keyStore.refreshToken !== refreshToken) {
+      throw new UnauthorizedError("Shop is not registered");
+    }
+
+    // Check lại user cho chắc chắn
+    const foundShop = await findByEmail({ email });
+    if (!foundShop) throw new UnauthorizedError("Shop not registered");
+
+    // 3. Tạo cặp token mới.
+    const tokens = await createTokenPair(
+      { userId, email },
+      keyStore.publicKey,
+      keyStore.privateKey
+    );
+
+    // 4. Cập nhật keyStore: đổi RT mới và đẩy RT cũ vào danh sách đã sử dụng.
+    await keyStore.updateOne({
+      $set: {
+        refreshToken: tokens.refreshToken,
+      },
+      $addToSet: {
+        refreshTokenUsed: refreshToken,
+      },
+    });
+
+    return {
+      user,
+      tokens,
+    };
+  };
+
   /**
    *  check this token used
    * */

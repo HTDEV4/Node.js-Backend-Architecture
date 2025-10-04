@@ -9,6 +9,7 @@ const HEADER = {
   API_KEY: "x-api-key",
   CLIENT_ID: "x-client-id",
   AUTHORIZATION: "authorization",
+  REFRESHTOKEN: "x-rtoken-id",
 };
 
 // * ====> createTokenPair
@@ -90,6 +91,66 @@ const authentication = asyncHandler(async (req, res, next) => {
   }
 });
 
+const authenticationV2 = asyncHandler(async (req, res, next) => {
+  // 1 Kiểm tra xem client có gửi đủ thông tin cần thiết không
+  const userId = req.headers[HEADER.CLIENT_ID];
+  if (!userId)
+    throw new UnauthorizedError("Invalid Request: Missing client ID");
+
+  // 2. Tìm keyStore DỰA VÀO userId mà client gửi lên.
+  // Đây là bước cần thiết để có `publicKey` nhằm giải mã token.
+  const keyStore = await findByUserId(userId);
+  if (!keyStore) throw new NotFoundError("Keystore not found");
+
+  // 3. Nếu access token hết hạn thì dùng refreshToken để cấp lại token mới
+  if (req.headers[HEADER.REFRESHTOKEN]) {
+    try {
+      const refreshToken = req.headers[HEADER.REFRESHTOKEN];
+
+      const decodeUser = JWT.verify(refreshToken, keyStore.privateKey);
+
+      // So sánh userId từ payload của token và userId từ header
+      // Đây là bước kiểm tra chéo quan trọng để đảm bảo client không giả mạo userId
+      if (userId !== decodeUser.userId) {
+        throw new UnauthorizedError("Invalid user credentials");
+      }
+
+      // Gắn các thông tin đã được xác thực vào request để các hàm sau sử dụng
+      req.keyStore = keyStore;
+      req.user = decodeUser; // payload của token: { userId, email, ... }
+      req.refreshToken = refreshToken;
+
+      return next();
+    } catch (error) {
+      // Bắt các lỗi của JWT.verify (hết hạn, sai chữ ký...)
+      // Ném lỗi gốc ra ngoài để error handler tổng xử lý
+      throw error;
+    }
+  }
+
+  // 4. Nếu access token còn thời hạn thì check coi access token có hợp lệ không
+  const accessToken = req.headers[HEADER.AUTHORIZATION];
+  if (!accessToken)
+    throw new UnauthorizedError("Invalid Request: Malformed token");
+
+  // Xác thực token
+  try {
+    // Dùng publicKey lấy từ DB để verify accessToken
+    const decodeUser = JWT.verify(accessToken, keyStore.publicKey);
+
+    if (userId !== decodeUser.userId) {
+      throw new UnauthorizedError("Invalid user credentials");
+    }
+
+    req.keyStore = keyStore;
+    req.user = decodeUser; // payload của token: { userId, email, ... }
+
+    return next();
+  } catch (error) {
+    throw error;
+  }
+});
+
 const verifyJWT = async (token, keySecret) => {
   return await JWT.verify(token, keySecret);
 };
@@ -97,5 +158,6 @@ const verifyJWT = async (token, keySecret) => {
 module.exports = {
   createTokenPair,
   authentication,
+  authenticationV2,
   verifyJWT,
 };

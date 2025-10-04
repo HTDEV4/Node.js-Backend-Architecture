@@ -26,7 +26,7 @@ var keyTokenSchema = new Schema(
       default: [], // Những RT đã được sử dụng
     },
     refreshToken: {
-      type: Array,
+      type: String,
       require: true,
     },
   },
