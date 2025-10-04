@@ -1,17 +1,15 @@
-// "use strict";
+"use strict";
 
-// const express = require("express");
-// const productController = require("../../controllers/product.controller");
-// const { asyncHandler } = require("../../helpers/asyncHandler");
-// const router = express.Router();
+const express = require("express");
+const productController = require("../../controllers/product.controller");
+const { asyncHandler } = require("../../helpers/asyncHandler");
+const { authenticationV2 } = require("../../auth/authUtils");
+const router = express.Router();
 
-// // * ====> Authentication
-// router.use(authentication);
-// // * ========== END ==========
-// router.post("/shop/logout", asyncHandler(accessController.logout));
-// router.post(
-//   "/shop/handlerRefreshToken",
-//   asyncHandler(accessController.handlerRefreshToken)
-// );
+// * ====> Authentication
+router.use(authenticationV2);
+// * ========== END ==========
 
-// module.exports = router;
+router.post("", asyncHandler(productController.createProduct));
+
+module.exports = router;

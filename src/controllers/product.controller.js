@@ -14,3 +14,5 @@ class ProductController {
     }).send(res);
   };
 }
+
+module.exports = new ProductController();
