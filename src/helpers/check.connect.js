@@ -3,30 +3,54 @@
 const mongoose = require("mongoose");
 const os = require("os");
 const process = require("process");
+
 const _SECONDS = 5000;
 
-// Count Connect
+/**
+ * Đếm số lượng kết nối hiện tại
+ */
 const countConnect = () => {
   const numConnection = mongoose.connections.length;
-  console.log(`Number of connections::${numConnection}`);
+  console.log(`[Monitor] Number of connections: ${numConnection}`);
+  return numConnection;
 };
 
-// check over load connect
+/**
+ * Giám sát quá tải hệ thống (Connection & Memory)
+ */
 const checkOverload = () => {
-  setInterval(() => {
+  // Trả về interval để có thể quản lý (stop/start)
+  return setInterval(() => {
     const numConnection = mongoose.connections.length;
-    const numCors = os.cpus().length; // Check coi máy tính có bao nhiêu core
+    const numCores = os.cpus().length;
     const memoryUsage = process.memoryUsage().rss;
-    // Example maximum number of connections based on number of cores
-    const maxConnections = numCors * 5; // Máy tính của mình chịu được tối đa 5 connection
 
-    // console.log(`Active connections:${numConnection}`);
-    // console.log(`Memory usage:: ${memoryUsage / 1024 / 1024} MB`);
+    // Giả định: Mỗi core chịu được tối đa 5 kết nối (Có thể điều chỉnh lên 50-100 tùy server)
+    const maxConnections = numCores * 5;
 
+    // Chuyển đổi RSS sang MB để dễ đọc
+    const memoryUsageMB = (memoryUsage / 1024 / 1024).toFixed(2);
+
+    // console.log(`---------- SYSTEM MONITOR ----------`);
+    // console.log(`> Active connections: ${numConnection}/${maxConnections}`);
+    // console.log(`> Memory usage: ${memoryUsageMB} MB`);
+
+    // 1. Cảnh báo quá tải kết nối
     if (numConnection > maxConnections) {
-      console.log(`Connection overload detected!`);
+      console.warn(
+        `[ALERT] Connection overload detected! Current: ${numConnection}`
+      );
+      // Ở đây bạn có thể gửi mail alert hoặc bắn tin nhắn Telegram cho Dev
     }
-  }, _SECONDS); // Monitor every 5 seconds
+
+    // 2. Cảnh báo quá tải RAM (Ví dụ: Cảnh báo nếu app dùng quá 500MB RAM - tùy cấu hình)
+    const memoryThreshold = 500; // 500MB
+    if (parseFloat(memoryUsageMB) > memoryThreshold) {
+      console.warn(`[ALERT] High memory usage detected: ${memoryUsageMB} MB`);
+    }
+
+    // console.log(`------------------------------------`);
+  }, _SECONDS);
 };
 
 module.exports = {
